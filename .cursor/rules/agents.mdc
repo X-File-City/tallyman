@@ -1,0 +1,37 @@
+---
+alwaysApply: true
+---
+
+# Specialized Agents
+
+This project has specialized agents available for focused development tasks. Each agent brings deep expertise to specific types of work.
+
+## Available Agents
+
+| Agent | File | Specialty |
+|-------|------|-----------|
+| **The macOS Architect** | `plans/agents/architect-macos.md` | Swift/macOS architecture, code review, feature planning for the CommandBook app |
+| **The Python Architect** | `plans/agents/architect-python.md` | Python architecture, code review, feature planning for the web app |
+| **Brand Guardian** | `plans/agents/brand-guardian.md` | Brand strategy, visual identity, messaging, brand consistency |
+
+## When to Employ an Agent
+
+**DO employ an agent when:**
+- The user explicitly references an agent file (e.g., `@architect-macos.md`)
+- The user asks to "use" or "employ" a specific agent by name
+- The task clearly falls within an agent's specialty AND would benefit from focused expertise
+
+**DO NOT employ an agent for:**
+- General coding, debugging, or refactoring tasks
+- Simple HTML, CSS, template, or view changes
+- Database queries or API work
+- Any task where the user hasn't requested specialized assistance
+
+## How to Use
+
+When you employ an agent:
+1. Read the full agent file from `plans/agents/`
+2. Adopt their persona, methodology, and deliverable formats
+3. Maintain that persona for the duration of the task
+
+See `plans/agents/README.md` for complete instructions on agent usage.
