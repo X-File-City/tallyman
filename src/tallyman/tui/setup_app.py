@@ -4,20 +4,21 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from tallyman.walker import GitIgnoreSpec
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal
 from textual.widgets import Button, Footer, Header, Static, Tree
 from textual.widgets.tree import TreeNode
 
+from tallyman.walker import SPEC_DIR_NAMES, GitIgnoreSpec
+
 
 class SetupTree(Tree[dict[str, object]]):
     """Tree subclass for tallyman setup."""
 
 
-class SetupApp(App[set[str] | None]):
-    """First-run setup: choose which directories to include in tallyman counts."""
+class SetupApp(App[tuple[set[str], set[str]] | None]):
+    """First-run setup: choose which directories to include/exclude and designate specs."""
 
     CSS = """
     #instructions {
@@ -41,6 +42,7 @@ class SetupApp(App[set[str] | None]):
 
     BINDINGS = [
         Binding('x', 'toggle_node', 'Toggle include/exclude', show=True),
+        Binding('s', 'toggle_spec', 'Toggle spec directory', show=True),
         Binding('left', 'collapse_node', 'Collapse', show=False),
         Binding('right', 'expand_node', 'Expand', show=False),
     ]
@@ -50,23 +52,32 @@ class SetupApp(App[set[str] | None]):
         root: Path,
         gitignore_spec: GitIgnoreSpec,
         existing_exclusions: set[str],
+        existing_specs: set[str],
     ) -> None:
         super().__init__()
         self.root = root
         self.title = f'Setup Tallyman for {root.name}'
         self.gitignore_spec = gitignore_spec
         self.user_excluded: set[str] = set(existing_exclusions)
+        self.user_spec_dirs: set[str] = set(existing_specs)
 
     def compose(self) -> ComposeResult:
         yield Header()
         yield Static(
             'Use [bold]←/→[/bold] to expand/collapse, '
-            '[bold]x[/bold] to toggle directories.',
+            '[bold]x[/bold] to toggle include/exclude, '
+            '[bold]s[/bold] to toggle spec directory.',
             id='instructions',
         )
         tree: SetupTree = SetupTree(self.root.name)
-        tree.root.data = {'path': '', 'gitignored': False, 'excluded': False}
-        self._populate(tree.root, self.root, '')
+        tree.root.data = {
+            'path': '',
+            'gitignored': False,
+            'excluded': False,
+            'spec': False,
+            'auto_spec': False,
+        }
+        self._populate(tree.root, self.root, '', parent_is_spec=False)
         tree.root.expand_all()
         if self.user_excluded:
             self._collapse_excluded(tree.root)
@@ -91,14 +102,18 @@ class SetupApp(App[set[str] | None]):
             child_rel = f'{rel_path}/{entry.name}'.lstrip('/')
             is_gitignored = self.gitignore_spec.match_file(child_rel + '/')
             is_excluded = child_rel in self.user_excluded or is_gitignored
+            is_auto_spec = entry.name.lower() in SPEC_DIR_NAMES and not is_gitignored
+            is_spec = child_rel in self.user_spec_dirs or is_auto_spec
 
-            label = self._make_label(entry.name, is_gitignored, is_excluded)
+            label = self._make_label(entry.name, is_gitignored, is_excluded, is_spec, is_auto_spec)
             node = parent_node.add(
                 label,
                 data={
                     'path': child_rel,
                     'gitignored': is_gitignored,
                     'excluded': is_excluded,
+                    'spec': is_spec,
+                    'auto_spec': is_auto_spec,
                 },
             )
 
@@ -116,11 +131,21 @@ class SetupApp(App[set[str] | None]):
                 SetupApp._collapse_excluded(child)
 
     @staticmethod
-    def _make_label(name: str, gitignored: bool, excluded: bool) -> str:
+    def _make_label(
+        name: str,
+        gitignored: bool,
+        excluded: bool,
+        spec: bool = False,
+        auto_spec: bool = False,
+    ) -> str:
         if gitignored:
             return f'[dim]{name} (gitignored)[/dim]'
         if excluded:
             return f'[red]✗[/red] [dim]{name}[/dim]'
+        if auto_spec:
+            return f'[bright_cyan]S[/bright_cyan] [dim]{name} (specs)[/dim]'
+        if spec:
+            return f'[bright_cyan]S[/bright_cyan] {name}'
         return f'[green]✓[/green] {name}'
 
     def action_toggle_node(self) -> None:
@@ -135,6 +160,28 @@ class SetupApp(App[set[str] | None]):
 
         new_state = not node.data['excluded']
         self._set_excluded(node, new_state)
+
+    def action_toggle_spec(self) -> None:
+        """Toggle spec status on the focused directory."""
+        tree = self.query_one(SetupTree)
+        node = tree.cursor_node
+        if node is None or node.data is None:
+            return
+
+        # Can't toggle gitignored dirs
+        if node.data['gitignored']:
+            return
+
+        # Can't toggle excluded dirs — un-exclude first
+        if node.data['excluded']:
+            return
+
+        # Can't toggle auto-detected spec dirs
+        if node.data['auto_spec']:
+            return
+
+        new_state = not node.data['spec']
+        self._set_spec(node, new_state)
 
     def action_collapse_node(self) -> None:
         tree = self.query_one(SetupTree)
@@ -164,23 +211,51 @@ class SetupApp(App[set[str] | None]):
 
         if excluded:
             self.user_excluded.add(rel_path)
+            # Clear spec status when excluding
+            node.data['spec'] = False  # type: ignore[index]
+            self.user_spec_dirs.discard(rel_path)
         else:
             self.user_excluded.discard(rel_path)
 
         # Update label
         name = Path(rel_path).name if rel_path else self.root.name
         gitignored = bool(node.data['gitignored'])  # type: ignore[index]
-        node.set_label(self._make_label(name, gitignored, excluded))
+        auto_spec = bool(node.data['auto_spec'])  # type: ignore[index]
+        spec = bool(node.data['spec'])  # type: ignore[index]
+        node.set_label(self._make_label(name, gitignored, excluded, spec, auto_spec))
 
         # Cascade to children
         for child in node.children:
             if child.data and not child.data['gitignored']:
                 self._set_excluded(child, excluded)
 
+    def _set_spec(self, node: TreeNode[dict[str, object]], spec: bool) -> None:
+        """Set spec state on a node and cascade to all children."""
+        node.data['spec'] = spec  # type: ignore[index]
+        rel_path = str(node.data['path'])  # type: ignore[index]
+
+        if spec:
+            self.user_spec_dirs.add(rel_path)
+        else:
+            self.user_spec_dirs.discard(rel_path)
+
+        # Update label
+        name = Path(rel_path).name if rel_path else self.root.name
+        gitignored = bool(node.data['gitignored'])  # type: ignore[index]
+        excluded = bool(node.data['excluded'])  # type: ignore[index]
+        auto_spec = bool(node.data['auto_spec'])  # type: ignore[index]
+        node.set_label(self._make_label(name, gitignored, excluded, spec, auto_spec))
+
+        # Cascade to children
+        for child in node.children:
+            if child.data and not child.data['gitignored'] and not child.data['auto_spec']:
+                self._set_spec(child, spec)
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == 'save':
-            cleaned = self._clean_exclusions(self.user_excluded)
-            self.exit(cleaned)
+            cleaned_excluded = self._clean_exclusions(self.user_excluded)
+            cleaned_specs = self._clean_exclusions(self.user_spec_dirs)
+            self.exit((cleaned_excluded, cleaned_specs))
         elif event.button.id == 'cancel':
             self.exit(None)
 
@@ -199,10 +274,11 @@ def run_setup(
     root: Path,
     gitignore_spec: GitIgnoreSpec,
     existing_exclusions: set[str],
-) -> set[str] | None:
+    existing_specs: set[str],
+) -> tuple[set[str], set[str]] | None:
     """Launch the TUI setup app.
 
-    Returns the set of excluded directory paths, or None if the user quit without saving.
+    Returns (excluded_dirs, spec_dirs), or None if the user quit without saving.
     """
-    app = SetupApp(root, gitignore_spec, existing_exclusions)
+    app = SetupApp(root, gitignore_spec, existing_exclusions, existing_specs)
     return app.run()

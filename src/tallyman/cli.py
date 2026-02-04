@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 from tallyman.aggregator import aggregate
-from tallyman.config import CONFIG_FILENAME, find_config, load_config, save_config
+from tallyman.config import CONFIG_FILENAME, TallyConfig, find_config, load_config, save_config
 from tallyman.counter import count_lines
 from tallyman.display import display_results
 from tallyman.tui.setup_app import run_setup
@@ -56,20 +56,22 @@ def main() -> None:
     existing_config = find_config(root)
 
     if existing_config and not args.setup:
-        excluded_dirs = load_config(existing_config)
+        config = load_config(existing_config)
+        excluded_dirs = config.excluded_dirs
+        spec_dirs = config.spec_dirs
     else:
         # First run or --setup: launch TUI
-        existing_exclusions = load_config(existing_config) if existing_config else set()
-        result = run_setup(root, gitignore_spec, existing_exclusions)
+        existing = load_config(existing_config) if existing_config else TallyConfig()
+        result = run_setup(root, gitignore_spec, existing.excluded_dirs, existing.spec_dirs)
         if result is None:
             print('Setup cancelled.')
             sys.exit(0)
-        excluded_dirs = result
-        save_config(config_path, excluded_dirs)
+        excluded_dirs, spec_dirs = result
+        save_config(config_path, excluded_dirs, spec_dirs)
 
     # Walk and count
     file_results = []
-    for file_path, language in walk_project(root, excluded_dirs, gitignore_spec):
+    for file_path, language in walk_project(root, excluded_dirs, gitignore_spec, spec_dirs):
         counts = count_lines(file_path, language)
         file_results.append((language, counts))
 

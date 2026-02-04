@@ -8,7 +8,9 @@ from pathlib import Path
 
 import pathspec
 
-from tallyman.languages import Language, identify_language
+from tallyman.languages import Language, as_spec, identify_language
+
+SPEC_DIR_NAMES: frozenset[str] = frozenset({'specs', 'specifications', 'plans', 'agents'})
 
 
 def find_git_root(start: Path) -> Path | None:
@@ -103,6 +105,7 @@ def walk_project(
     root: Path,
     excluded_dirs: set[str],
     gitignore_spec: GitIgnoreSpec | None = None,
+    spec_dirs: set[str] | None = None,
 ) -> Iterator[tuple[Path, Language]]:
     """Yield (file_path, language) for every countable source file under root.
 
@@ -110,13 +113,17 @@ def walk_project(
         root: Project root directory.
         excluded_dirs: Relative directory paths to skip (e.g. {'static/external'}).
         gitignore_spec: Pre-loaded gitignore patterns. Loaded from root if None.
+        spec_dirs: Relative directory paths designated as spec directories.
     """
     if gitignore_spec is None:
         gitignore_spec = load_gitignore(root)
 
+    active_spec_roots: set[str] = set(spec_dirs) if spec_dirs else set()
+
     for dirpath_str, dirnames, filenames in os.walk(root, topdown=True, followlinks=False):
         dirpath = Path(dirpath_str)
         rel_dir = dirpath.relative_to(root)
+        rel_dir_str = str(rel_dir) if str(rel_dir) != '.' else ''
 
         # Prune excluded and gitignored subdirectories in-place
         filtered_dirs: list[str] = []
@@ -135,6 +142,23 @@ def walk_project(
 
         dirnames[:] = filtered_dirs
 
+        # Determine if this directory is inside a spec directory
+        dir_is_spec = False
+        if rel_dir_str:
+            # Check auto-detection by directory name
+            if dirpath.name.lower() in SPEC_DIR_NAMES:
+                dir_is_spec = True
+                active_spec_roots.add(rel_dir_str)
+            # Check user-designated spec dirs
+            elif rel_dir_str in active_spec_roots:
+                dir_is_spec = True
+            # Check if parent is a spec dir (cascading)
+            else:
+                for sr in active_spec_roots:
+                    if rel_dir_str.startswith(sr + '/'):
+                        dir_is_spec = True
+                        break
+
         # Yield recognized, non-binary files
         for filename in sorted(filenames):
             file_path = dirpath / filename
@@ -149,5 +173,9 @@ def walk_project(
 
             if _is_binary(file_path):
                 continue
+
+            # Swap docs → specs if inside a spec directory
+            if dir_is_spec and language.category == 'docs':
+                language = as_spec(language)
 
             yield file_path, language

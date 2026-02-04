@@ -142,6 +142,99 @@ class TestWalkProject:
         results = list(walk_project(root, set()))
         # The symlinked directory should not be followed
         paths = {r[0].name for r in results}
-        assert 'mod.py' not in paths or all(
-            not str(r[0]).startswith(str(root / 'link')) for r in results
-        )
+        assert 'mod.py' not in paths or all(not str(r[0]).startswith(str(root / 'link')) for r in results)
+
+
+class TestWalkProjectSpecs:
+    def test_auto_detect_specs_dir(self, tmp_path: Path):
+        """Directory named 'specs' auto-detects as spec directory."""
+        specs = tmp_path / 'specs'
+        specs.mkdir()
+        (specs / 'design.md').write_text('# Design spec\n')
+        (tmp_path / 'README.md').write_text('# README\n')
+
+        results = list(walk_project(tmp_path, set()))
+        readme_lang = next(lang for path, lang in results if path.name == 'README.md')
+        spec_lang = next(lang for path, lang in results if path.name == 'design.md')
+
+        assert readme_lang.category == 'docs'
+        assert spec_lang.category == 'specs'
+
+    def test_auto_detect_plans_dir(self, tmp_path: Path):
+        """Directory named 'plans' auto-detects as spec directory."""
+        plans = tmp_path / 'plans'
+        plans.mkdir()
+        (plans / 'phase1.md').write_text('# Phase 1\n')
+
+        results = list(walk_project(tmp_path, set()))
+        lang = results[0][1]
+        assert lang.category == 'specs'
+
+    def test_auto_detect_specifications_dir(self, tmp_path: Path):
+        """Directory named 'specifications' auto-detects as spec directory."""
+        specifications = tmp_path / 'specifications'
+        specifications.mkdir()
+        (specifications / 'req.md').write_text('# Requirements\n')
+
+        results = list(walk_project(tmp_path, set()))
+        lang = results[0][1]
+        assert lang.category == 'specs'
+
+    def test_auto_detect_agents_dir(self, tmp_path: Path):
+        """Directory named 'agents' auto-detects as spec directory."""
+        agents = tmp_path / 'agents'
+        agents.mkdir()
+        (agents / 'prompt.md').write_text('# Agent prompt\n')
+
+        results = list(walk_project(tmp_path, set()))
+        lang = results[0][1]
+        assert lang.category == 'specs'
+
+    def test_user_designated_spec_dir(self, tmp_path: Path):
+        """User-designated spec dirs via spec_dirs parameter."""
+        docs = tmp_path / 'docs' / 'architecture'
+        docs.mkdir(parents=True)
+        (docs / 'overview.md').write_text('# Architecture\n')
+
+        results = list(walk_project(tmp_path, set(), spec_dirs={'docs/architecture'}))
+        lang = results[0][1]
+        assert lang.category == 'specs'
+
+    def test_spec_cascades_to_subdirs(self, tmp_path: Path):
+        """Spec status cascades to child directories."""
+        sub = tmp_path / 'specs' / 'api'
+        sub.mkdir(parents=True)
+        (sub / 'endpoints.md').write_text('# Endpoints\n')
+
+        results = list(walk_project(tmp_path, set()))
+        lang = results[0][1]
+        assert lang.category == 'specs'
+
+    def test_non_docs_in_spec_dir_unchanged(self, tmp_path: Path):
+        """Python files in spec dirs keep their 'code' category."""
+        specs = tmp_path / 'specs'
+        specs.mkdir()
+        (specs / 'helper.py').write_text('x = 1\n')
+
+        results = list(walk_project(tmp_path, set()))
+        lang = results[0][1]
+        assert lang.category == 'code'
+
+    def test_spec_dir_name_case_insensitive(self, tmp_path: Path):
+        """Auto-detection is case-insensitive."""
+        specs = tmp_path / 'Specs'
+        specs.mkdir()
+        (specs / 'doc.md').write_text('# Doc\n')
+
+        results = list(walk_project(tmp_path, set()))
+        lang = results[0][1]
+        assert lang.category == 'specs'
+
+    def test_excluded_spec_dir_not_walked(self, tmp_path: Path):
+        """An excluded spec dir is not walked at all."""
+        specs = tmp_path / 'specs'
+        specs.mkdir()
+        (specs / 'doc.md').write_text('# Doc\n')
+
+        results = list(walk_project(tmp_path, {'specs'}))
+        assert len(results) == 0

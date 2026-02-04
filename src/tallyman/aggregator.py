@@ -12,10 +12,11 @@ CATEGORY_DISPLAY_NAMES: dict[str, str] = {
     'code': 'Code',
     'design': 'Design',
     'docs': 'Docs',
+    'specs': 'Specs',
     'data': 'Data',
 }
 
-CATEGORY_ORDER: list[str] = ['code', 'design', 'docs', 'data']
+CATEGORY_ORDER: list[str] = ['code', 'design', 'docs', 'specs', 'data']
 
 
 @dataclass(slots=True)
@@ -40,7 +41,7 @@ class LanguageStats:
 
 @dataclass
 class CategoryStats:
-    name: str  # 'Code', 'Design', 'Docs', 'Data'
+    name: str  # 'Code', 'Design', 'Docs', 'Specs', 'Data'
     total_lines: int = 0
     effective_lines: int = 0  # non-blank non-comment (or non-blank for languages without comment detection)
     languages: list[str] = field(default_factory=list)
@@ -49,21 +50,22 @@ class CategoryStats:
 @dataclass
 class TallyResult:
     by_language: list[LanguageStats]  # Sorted by total_lines descending
-    by_category: list[CategoryStats]  # In display order: Code, Design, Docs, Data
+    by_category: list[CategoryStats]  # In display order: Code, Design, Docs, Specs, Data
     grand_total_lines: int = 0
 
 
 def aggregate(file_results: Iterable[tuple[Language, FileCount]]) -> TallyResult:
     """Consume per-file results and produce aggregated stats.
 
-    Groups by language, sorts by total lines descending, and computes category totals.
+    Groups by Language object (not name) so that the same language name in
+    different categories (e.g. Markdown in docs vs specs) stays separate.
     """
-    by_name: dict[str, LanguageStats] = {}
+    by_lang: dict[Language, LanguageStats] = {}
 
     for language, counts in file_results:
-        if language.name not in by_name:
-            by_name[language.name] = LanguageStats(language=language)
-        stats = by_name[language.name]
+        if language not in by_lang:
+            by_lang[language] = LanguageStats(language=language)
+        stats = by_lang[language]
         stats.file_count += 1
         stats.total_lines += counts.total_lines
         stats.code_lines += counts.code_lines
@@ -71,7 +73,7 @@ def aggregate(file_results: Iterable[tuple[Language, FileCount]]) -> TallyResult
         stats.blank_lines += counts.blank_lines
 
     # Sort by total lines descending
-    sorted_langs = sorted(by_name.values(), key=lambda s: s.total_lines, reverse=True)
+    sorted_langs = sorted(by_lang.values(), key=lambda s: s.total_lines, reverse=True)
 
     # Build category stats
     cat_lines: dict[str, int] = {}
@@ -109,14 +111,11 @@ def aggregate(file_results: Iterable[tuple[Language, FileCount]]) -> TallyResult
     )
 
 
-def language_percentages(result: TallyResult) -> list[tuple[str, str, float]]:
-    """Return [(language_name, color, percentage), ...] sorted by percentage descending.
+def language_percentages(result: TallyResult) -> list[tuple[Language, float]]:
+    """Return [(Language, percentage), ...] sorted by percentage descending.
 
     Percentage is of total lines across all languages.
     """
     if result.grand_total_lines == 0:
         return []
-    return [
-        (s.language.name, s.language.color, s.total_lines / result.grand_total_lines * 100)
-        for s in result.by_language
-    ]
+    return [(s.language, s.total_lines / result.grand_total_lines * 100) for s in result.by_language]

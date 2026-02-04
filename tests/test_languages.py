@@ -1,6 +1,8 @@
 from pathlib import Path
 
-from tallyman.languages import EXTENSION_MAP, LANGUAGES, identify_language
+import pytest
+
+from tallyman.languages import EXTENSION_MAP, LANGUAGES, as_spec, identify_language
 
 
 class TestIdentifyLanguage:
@@ -77,3 +79,32 @@ class TestLanguageRegistry:
             assert False, 'Should have raised FrozenInstanceError'
         except AttributeError:
             pass
+
+
+class TestAsSpec:
+    def test_creates_spec_category(self):
+        md = identify_language(Path('test.md'))
+        assert md is not None
+        spec_md = as_spec(md)
+        assert spec_md.category == 'specs'
+        assert spec_md.name == 'Markdown'
+        assert spec_md.color == md.color
+        assert spec_md.extensions == md.extensions
+
+    def test_caching(self):
+        md = identify_language(Path('test.md'))
+        assert md is not None
+        assert as_spec(md) is as_spec(md)
+
+    def test_rejects_non_docs(self):
+        py = identify_language(Path('test.py'))
+        assert py is not None
+        with pytest.raises(ValueError):
+            as_spec(py)
+
+    def test_rst(self):
+        rst = identify_language(Path('test.rst'))
+        assert rst is not None
+        spec_rst = as_spec(rst)
+        assert spec_rst.category == 'specs'
+        assert spec_rst.name == 'reStructuredText'

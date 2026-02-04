@@ -73,3 +73,27 @@ EXTENSION_MAP: dict[str, Language] = _build_extension_map()
 def identify_language(path: Path) -> Language | None:
     """Return the Language for a file path, or None if unrecognized."""
     return EXTENSION_MAP.get(path.suffix.lower())
+
+
+_SPEC_CACHE: dict[Language, Language] = {}
+
+
+def as_spec(lang: Language) -> Language:
+    """Return a spec-category variant of a docs-category language.
+
+    Creates a Language identical to *lang* but with category='specs'.
+    Results are cached since Language is frozen and hashable.
+
+    Raises ValueError if lang.category is not 'docs'.
+    """
+    if lang.category != 'docs':
+        raise ValueError(f'as_spec() only applies to docs languages, got {lang.category!r}')
+    if lang not in _SPEC_CACHE:
+        _SPEC_CACHE[lang] = Language(
+            lang.name,
+            'specs',
+            lang.color,
+            lang.single_line_comment,
+            lang.extensions,
+        )
+    return _SPEC_CACHE[lang]

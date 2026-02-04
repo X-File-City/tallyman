@@ -69,6 +69,62 @@ class TestAggregate:
         assert tally.grand_total_lines == 0
 
 
+class TestAggregateSpecs:
+    def test_specs_category_in_output(self):
+        """Spec-category languages produce a Specs category in results."""
+        md = Language('Markdown', 'docs', 'white', None, ('.md',))
+        spec_md = Language('Markdown', 'specs', 'white', None, ('.md',))
+
+        results = [
+            (md, FileCount(total_lines=100, blank_lines=20)),
+            (spec_md, FileCount(total_lines=500, blank_lines=50)),
+        ]
+
+        tally = aggregate(results)
+
+        assert len(tally.by_language) == 2
+
+        cat_names = [c.name for c in tally.by_category]
+        assert 'Docs' in cat_names
+        assert 'Specs' in cat_names
+
+        docs_cat = next(c for c in tally.by_category if c.name == 'Docs')
+        specs_cat = next(c for c in tally.by_category if c.name == 'Specs')
+        assert docs_cat.effective_lines == 80  # 100 - 20 blank
+        assert specs_cat.effective_lines == 450  # 500 - 50 blank
+
+    def test_groups_by_language_object(self):
+        """Two Language objects with same name but different categories stay separate."""
+        md_docs = Language('Markdown', 'docs', 'white', None, ('.md',))
+        md_specs = Language('Markdown', 'specs', 'white', None, ('.md',))
+
+        results = [
+            (md_docs, FileCount(total_lines=100)),
+            (md_specs, FileCount(total_lines=200)),
+        ]
+
+        tally = aggregate(results)
+        assert len(tally.by_language) == 2
+        assert tally.grand_total_lines == 300
+
+    def test_specs_category_order(self):
+        """Specs appears between Docs and Data in category output."""
+        md = Language('Markdown', 'docs', 'white', None, ('.md',))
+        spec_md = Language('Markdown', 'specs', 'white', None, ('.md',))
+        toml = Language('TOML', 'data', 'grey50', '#', ('.toml',))
+
+        results = [
+            (md, FileCount(total_lines=100, blank_lines=10)),
+            (spec_md, FileCount(total_lines=200, blank_lines=20)),
+            (toml, FileCount(total_lines=50, code_lines=40, comment_lines=5, blank_lines=5)),
+        ]
+
+        tally = aggregate(results)
+        cat_names = [c.name for c in tally.by_category]
+        assert cat_names.index('Docs') < cat_names.index('Specs')
+        assert cat_names.index('Specs') < cat_names.index('Data')
+
+
 class TestLanguagePercentages:
     def test_single_language_is_100_percent(self):
         py = _lang('Python')
@@ -79,8 +135,8 @@ class TestLanguagePercentages:
         )
         pcts = language_percentages(tally)
         assert len(pcts) == 1
-        assert pcts[0][0] == 'Python'
-        assert pcts[0][2] == 100.0
+        assert pcts[0][0] is py
+        assert pcts[0][1] == 100.0
 
     def test_percentages_sum_to_100(self):
         py = _lang('Python')
@@ -94,7 +150,7 @@ class TestLanguagePercentages:
             grand_total_lines=100,
         )
         pcts = language_percentages(tally)
-        total = sum(p[2] for p in pcts)
+        total = sum(p[1] for p in pcts)
         assert abs(total - 100.0) < 0.01
 
     def test_empty_returns_empty(self):

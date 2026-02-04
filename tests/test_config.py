@@ -36,41 +36,70 @@ class TestLoadConfig:
         config = tmp_path / CONFIG_FILENAME
         config.write_text('[exclude]\ndirectories = ["vendor", "static/external"]\n')
         result = load_config(config)
-        assert result == {'vendor', 'static/external'}
+        assert result.excluded_dirs == {'vendor', 'static/external'}
 
     def test_empty_directories(self, tmp_path: Path):
         config = tmp_path / CONFIG_FILENAME
         config.write_text('[exclude]\ndirectories = []\n')
         result = load_config(config)
-        assert result == set()
+        assert result.excluded_dirs == set()
 
     def test_no_exclude_section(self, tmp_path: Path):
         config = tmp_path / CONFIG_FILENAME
         config.write_text('# empty config\n')
         result = load_config(config)
-        assert result == set()
+        assert result.excluded_dirs == set()
+
+    def test_loads_spec_directories(self, tmp_path: Path):
+        config = tmp_path / CONFIG_FILENAME
+        config.write_text(
+            '[exclude]\ndirectories = ["vendor"]\n\n[specs]\ndirectories = ["docs/arch", "project/reqs"]\n'
+        )
+        result = load_config(config)
+        assert result.excluded_dirs == {'vendor'}
+        assert result.spec_dirs == {'docs/arch', 'project/reqs'}
+
+    def test_no_specs_section_returns_empty(self, tmp_path: Path):
+        config = tmp_path / CONFIG_FILENAME
+        config.write_text('[exclude]\ndirectories = ["vendor"]\n')
+        result = load_config(config)
+        assert result.excluded_dirs == {'vendor'}
+        assert result.spec_dirs == set()
 
 
 class TestSaveConfig:
     def test_round_trip(self, tmp_path: Path):
         config = tmp_path / CONFIG_FILENAME
         original = {'vendor', 'static/external', 'docs/_build'}
-        save_config(config, original)
+        save_config(config, original, set())
         loaded = load_config(config)
-        assert loaded == original
+        assert loaded.excluded_dirs == original
 
     def test_sorted_output(self, tmp_path: Path):
         config = tmp_path / CONFIG_FILENAME
-        save_config(config, {'z_last', 'a_first', 'm_middle'})
+        save_config(config, {'z_last', 'a_first', 'm_middle'}, set())
         text = config.read_text()
         lines = [line.strip() for line in text.splitlines() if line.strip().startswith('"')]
         assert lines == ['"a_first",', '"m_middle",', '"z_last",']
 
     def test_empty_exclusions(self, tmp_path: Path):
         config = tmp_path / CONFIG_FILENAME
-        save_config(config, set())
+        save_config(config, set(), set())
         loaded = load_config(config)
-        assert loaded == set()
+        assert loaded.excluded_dirs == set()
+
+    def test_round_trip_with_specs(self, tmp_path: Path):
+        config = tmp_path / CONFIG_FILENAME
+        save_config(config, {'vendor'}, {'plans', 'docs/arch'})
+        loaded = load_config(config)
+        assert loaded.excluded_dirs == {'vendor'}
+        assert loaded.spec_dirs == {'plans', 'docs/arch'}
+
+    def test_no_specs_omits_section(self, tmp_path: Path):
+        config = tmp_path / CONFIG_FILENAME
+        save_config(config, {'vendor'}, set())
+        content = config.read_text()
+        assert '[specs]' not in content
 
 
 class TestCleanExclusions:

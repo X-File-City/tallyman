@@ -6,7 +6,8 @@ from rich.console import Console
 from rich.text import Text
 
 from tallyman import __version__
-from tallyman.aggregator import TallyResult, language_percentages
+from tallyman.aggregator import CATEGORY_DISPLAY_NAMES, TallyResult, language_percentages
+from tallyman.languages import Language
 
 BAR_WIDTH = 60
 SMALL_LANGUAGE_THRESHOLD = 2.0  # Percentage below which languages are grouped as "Other"
@@ -47,11 +48,30 @@ def _language_header(name: str, color: str) -> str:
     return f'[{color}]{"─" * left}{label}{"─" * right}[/{color}]'
 
 
+def _language_display_names(result: TallyResult) -> dict[Language, str]:
+    """Build display names, appending category when a language name appears in multiple categories."""
+    name_categories: dict[str, set[str]] = {}
+    for stats in result.by_language:
+        name_categories.setdefault(stats.language.name, set()).add(stats.language.category)
+
+    display_names: dict[Language, str] = {}
+    for stats in result.by_language:
+        if len(name_categories[stats.language.name]) > 1:
+            cat_label = CATEGORY_DISPLAY_NAMES.get(stats.language.category, stats.language.category)
+            display_names[stats.language] = f'{stats.language.name} ({cat_label.lower()})'
+        else:
+            display_names[stats.language] = stats.language.name
+    return display_names
+
+
 def _display_languages(console: Console, result: TallyResult) -> None:
+    display_names = _language_display_names(result)
+
     for stats in result.by_language:
         lang = stats.language
+        name = display_names[lang]
 
-        console.print(_language_header(lang.name, lang.color))
+        console.print(_language_header(name, lang.color))
 
         total_str = f'{stats.total_lines:,}'
 
@@ -70,7 +90,11 @@ def _display_separator(console: Console) -> None:
 
 
 def _display_category_totals(console: Console, result: TallyResult) -> None:
-    active_categories = [c for c in result.by_category if c.total_lines > 0]
+    active_categories = sorted(
+        (c for c in result.by_category if c.total_lines > 0),
+        key=lambda c: c.effective_lines,
+        reverse=True,
+    )
     if not active_categories:
         return
 
@@ -98,18 +122,22 @@ def _display_percentage_bar(console: Console, result: TallyResult) -> None:
 
     console.print()
 
+    display_names = _language_display_names(result)
     percentages = language_percentages(result)
 
     # Group small languages into "Other"
-    main_langs = [(name, color, pct) for name, color, pct in percentages if pct >= SMALL_LANGUAGE_THRESHOLD]
-    other_pct = sum(pct for _, _, pct in percentages if pct < SMALL_LANGUAGE_THRESHOLD)
+    main_langs: list[tuple[Language | None, float]] = [
+        (lang, pct) for lang, pct in percentages if pct >= SMALL_LANGUAGE_THRESHOLD
+    ]
+    other_pct = sum(pct for _, pct in percentages if pct < SMALL_LANGUAGE_THRESHOLD)
     if other_pct > 0:
-        main_langs.append(('Other', 'grey50', other_pct))
+        main_langs.append((None, other_pct))
 
     # Build the colored bar
     bar = Text()
     chars_used = 0
-    for i, (_name, color, pct) in enumerate(main_langs):
+    for i, (lang, pct) in enumerate(main_langs):
+        color = lang.color if lang else 'grey50'
         if i == len(main_langs) - 1:
             segment_width = BAR_WIDTH - chars_used
         else:
@@ -124,7 +152,11 @@ def _display_percentage_bar(console: Console, result: TallyResult) -> None:
 
     # Legend line
     legend_parts = []
-    for name, color, pct in main_langs:
-        legend_parts.append(f'[{color}]{name}[/{color}] {pct:.0f}%')
+    for lang, pct in main_langs:
+        if lang is None:
+            legend_parts.append(f'[grey50]Other[/grey50] {pct:.0f}%')
+        else:
+            name = display_names.get(lang, lang.name)
+            legend_parts.append(f'[{lang.color}]{name}[/{lang.color}] {pct:.0f}%')
     legend = '  ·  '.join(legend_parts)
     console.print(f'  {legend}')
