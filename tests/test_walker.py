@@ -107,10 +107,10 @@ class TestWalkProject:
 
     def test_skips_unrecognized_extensions(self, tmp_path: Path):
         root = self._setup_project(tmp_path)
-        (root / 'Makefile').write_text('all:\n\techo hi\n')
+        (root / 'LICENSE').write_text('MIT License\n')
         results = list(walk_project(root, set()))
         paths = {r[0].name for r in results}
-        assert 'Makefile' not in paths
+        assert 'LICENSE' not in paths
 
     def test_respects_excluded_dirs(self, tmp_path: Path):
         root = self._setup_project(tmp_path)

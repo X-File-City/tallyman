@@ -1,5 +1,9 @@
 # CLAUDE.md  -  Tallyman
 
+## Important Rules
+
+- **NEVER run commit or push git commands.** Only provide commit messages as text when asked.
+
 ## What This Is
 
 Tallyman is a Python CLI tool that scans a project directory and reports codebase size by language. It shows raw line counts and "effective" lines (excluding comments and blanks), grouped into categories: **Code**, **Design**, **Docs**, **Specs**, and **Data**.

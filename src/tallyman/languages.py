@@ -41,6 +41,14 @@ LANGUAGES: tuple[Language, ...] = (
     Language('Scala',        'code',   'red3',            '//', ('.scala',)),
     Language('Elixir',       'code',   'dark_violet',     '#',  ('.ex', '.exs')),
     Language('Zig',          'code',   'orange1',         '//', ('.zig',)),
+    Language('Haskell',      'code',   'purple',          '--', ('.hs',)),
+    Language('Erlang',       'code',   'salmon1',         '%',  ('.erl',)),
+    Language('OCaml',        'code',   'sandy_brown',     None, ('.ml', '.mli')),
+    Language('Nim',          'code',   'gold3',           '#',  ('.nim', '.nims')),
+    Language('V',            'code',   'sky_blue1',       '//', ('.v', '.vv')),
+    Language('Terraform',    'code',   'purple4',         '#',  ('.tf', '.tfvars')),
+    Language('Makefile',     'code',   'bright_white',    '#',  ('.mk',)),
+    Language('Docker',       'code',   'deep_sky_blue1',  '#',  ('.dockerfile',)),
     # --- Design ---
     Language('CSS',          'design', 'magenta',         None, ('.css',)),
     Language('SCSS',         'design', 'hot_pink',        '//', ('.scss',)),
@@ -71,8 +79,38 @@ def _build_extension_map() -> dict[str, Language]:
 EXTENSION_MAP: dict[str, Language] = _build_extension_map()
 
 
+def _build_filename_map() -> dict[str, Language]:
+    """Map specific filenames to languages for files identified by name rather than extension."""
+    by_name = {lang.name: lang for lang in LANGUAGES}
+    docker = by_name['Docker']
+    makefile = by_name['Makefile']
+    return {
+        'Dockerfile': docker,
+        'Makefile': makefile,
+        'makefile': makefile,
+        'GNUmakefile': makefile,
+        'docker-compose.yml': docker,
+        'docker-compose.yaml': docker,
+        'compose.yml': docker,
+        'compose.yaml': docker,
+    }
+
+
+FILENAME_MAP: dict[str, Language] = _build_filename_map()
+
+
 def identify_language(path: Path) -> Language | None:
-    """Return the Language for a file path, or None if unrecognized."""
+    """Return the Language for a file path, or None if unrecognized.
+
+    Checks exact filename matches first (e.g. Makefile, docker-compose.yml),
+    then Dockerfile prefix variants (Dockerfile.dev, Dockerfile.prod),
+    then falls back to extension matching.
+    """
+    name = path.name
+    if name in FILENAME_MAP:
+        return FILENAME_MAP[name]
+    if name.startswith('Dockerfile'):
+        return FILENAME_MAP['Dockerfile']
     return EXTENSION_MAP.get(path.suffix.lower())
 
 

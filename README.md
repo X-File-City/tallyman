@@ -10,33 +10,6 @@ Point Tallyman at any project directory and get a quick breakdown of what's in i
 
 Tallyman automatically skips things that aren't your code: virtual environments, `node_modules`, build artifacts, `.git`, and generated or minified files. What you get back is a realistic picture of the code *you* wrote.
 
-## Example Output
-
-```
-$ tallyman
-
-  Python:
-          10,213 lines of code
-           9,100 excluding comments and blank lines
-
-  CSS:
-           5,000 lines of code
-           4,500 excluding comments and blank lines
-
-  Rust:
-           1,200 lines of code
-             900 excluding comments and blank lines
-
-  Markdown:
-           2,102 lines
-           1,932 excluding blank lines
-
-  ----------------------------------------------------------
-  Totals:
-  Code:   11,413 lines (Python + Rust + JS, etc)
-  Design:  9,302 (CSS + HTML)
-  Docs:    2,102 lines (markdown)
-```
 
 ## Features
 

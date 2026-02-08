@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from tallyman.languages import EXTENSION_MAP, LANGUAGES, as_spec, identify_language
+from tallyman.languages import EXTENSION_MAP, FILENAME_MAP, LANGUAGES, as_spec, identify_language
 
 
 class TestIdentifyLanguage:
@@ -40,13 +40,81 @@ class TestIdentifyLanguage:
     def test_unknown_extension(self):
         assert identify_language(Path('photo.png')) is None
 
-    def test_no_extension(self):
-        assert identify_language(Path('Makefile')) is None
+    def test_no_extension_unknown(self):
+        assert identify_language(Path('README')) is None
 
     def test_case_insensitive(self):
         lang = identify_language(Path('README.MD'))
         assert lang is not None
         assert lang.name == 'Markdown'
+
+
+class TestFilenameIdentification:
+    def test_makefile(self):
+        lang = identify_language(Path('Makefile'))
+        assert lang is not None
+        assert lang.name == 'Makefile'
+
+    def test_makefile_lowercase(self):
+        lang = identify_language(Path('makefile'))
+        assert lang is not None
+        assert lang.name == 'Makefile'
+
+    def test_gnumakefile(self):
+        lang = identify_language(Path('GNUmakefile'))
+        assert lang is not None
+        assert lang.name == 'Makefile'
+
+    def test_makefile_mk_extension(self):
+        lang = identify_language(Path('rules.mk'))
+        assert lang is not None
+        assert lang.name == 'Makefile'
+
+    def test_dockerfile(self):
+        lang = identify_language(Path('Dockerfile'))
+        assert lang is not None
+        assert lang.name == 'Docker'
+
+    def test_dockerfile_variant(self):
+        lang = identify_language(Path('Dockerfile.dev'))
+        assert lang is not None
+        assert lang.name == 'Docker'
+
+    def test_dockerfile_extension(self):
+        lang = identify_language(Path('app.dockerfile'))
+        assert lang is not None
+        assert lang.name == 'Docker'
+
+    def test_docker_compose_yml(self):
+        lang = identify_language(Path('docker-compose.yml'))
+        assert lang is not None
+        assert lang.name == 'Docker'
+
+    def test_docker_compose_yaml(self):
+        lang = identify_language(Path('docker-compose.yaml'))
+        assert lang is not None
+        assert lang.name == 'Docker'
+
+    def test_compose_yml(self):
+        lang = identify_language(Path('compose.yml'))
+        assert lang is not None
+        assert lang.name == 'Docker'
+
+    def test_compose_yaml(self):
+        lang = identify_language(Path('compose.yaml'))
+        assert lang is not None
+        assert lang.name == 'Docker'
+
+    def test_filename_takes_priority_over_extension(self):
+        """docker-compose.yml should be Docker, not YAML."""
+        lang = identify_language(Path('docker-compose.yml'))
+        assert lang is not None
+        assert lang.name == 'Docker'
+        assert lang.name != 'YAML'
+
+    def test_filename_map_entries_are_valid(self):
+        for name, lang in FILENAME_MAP.items():
+            assert lang in LANGUAGES, f'FILENAME_MAP entry {name!r} points to unregistered language'
 
 
 class TestLanguageRegistry:
