@@ -11,13 +11,14 @@ from tallyman.languages import Language
 
 CATEGORY_DISPLAY_NAMES: dict[str, str] = {
     'code': 'Code',
+    'devops': 'DevOps',
     'design': 'Design',
     'docs': 'Docs',
     'specs': 'Specs',
     'data': 'Data',
 }
 
-CATEGORY_ORDER: list[str] = ['code', 'design', 'docs', 'specs', 'data']
+CATEGORY_ORDER: list[str] = ['code', 'devops', 'design', 'docs', 'specs', 'data']
 
 
 @dataclass(slots=True)
@@ -42,7 +43,7 @@ class LanguageStats:
 
 @dataclass(slots=True)
 class CategoryStats:
-    name: str  # 'Code', 'Design', 'Docs', 'Specs', 'Data'
+    name: str  # 'Code', 'DevOps', 'Design', 'Docs', 'Specs', 'Data'
     total_lines: int = 0
     effective_lines: int = 0  # non-blank non-comment (or non-blank for languages without comment detection)
     languages: list[str] = field(default_factory=list)
@@ -51,7 +52,7 @@ class CategoryStats:
 @dataclass(slots=True)
 class TallyResult:
     by_language: list[LanguageStats]  # Sorted by total_lines descending
-    by_category: list[CategoryStats]  # In display order: Code, Design, Docs, Specs, Data
+    by_category: list[CategoryStats]  # In display order: Code, DevOps, Design, Docs, Specs, Data
     grand_total_lines: int = 0
 
 

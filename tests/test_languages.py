@@ -32,6 +32,12 @@ class TestIdentifyLanguage:
         assert lang.name == 'Markdown'
         assert lang.category == 'docs'
 
+    def test_html_template_extensions(self):
+        for ext in ('.xhtml', '.shtml', '.pt', '.jinja', '.jinja2', '.j2', '.njk', '.hbs', '.ejs', '.mustache'):
+            lang = identify_language(Path(f'template{ext}'))
+            assert lang is not None, f'{ext} not recognized'
+            assert lang.name == 'HTML', f'{ext} mapped to {lang.name}, expected HTML'
+
     def test_css(self):
         lang = identify_language(Path('styles.css'))
         assert lang is not None
@@ -135,7 +141,7 @@ class TestLanguageRegistry:
                 assert ext.startswith('.'), f'{lang.name} extension {ext!r} missing leading dot'
 
     def test_valid_categories(self):
-        valid = {'code', 'design', 'docs', 'data'}
+        valid = {'code', 'devops', 'design', 'docs', 'data'}
         for lang in LANGUAGES:
             assert lang.category in valid, f'{lang.name} has invalid category {lang.category!r}'
 

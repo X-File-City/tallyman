@@ -10,7 +10,7 @@ from pathlib import Path
 @dataclass(frozen=True, slots=True)
 class Language:
     name: str
-    category: str  # 'code', 'design', 'docs', 'data'
+    category: str  # 'code', 'devops', 'design', 'docs', 'data'
     color: str  # Rich color name
     single_line_comment: str | None  # e.g. '#', '//', '--'; None if no simple detection
     extensions: tuple[str, ...]
@@ -46,14 +46,15 @@ LANGUAGES: tuple[Language, ...] = (
     Language('OCaml',        'code',   'sandy_brown',     None, ('.ml', '.mli')),
     Language('Nim',          'code',   'gold3',           '#',  ('.nim', '.nims')),
     Language('V',            'code',   'sky_blue1',       '//', ('.v', '.vv')),
-    Language('Terraform',    'code',   'purple4',         '#',  ('.tf', '.tfvars')),
-    Language('Makefile',     'code',   'bright_white',    '#',  ('.mk',)),
-    Language('Docker',       'code',   'deep_sky_blue1',  '#',  ('.dockerfile',)),
+    # --- DevOps ---
+    Language('Terraform',    'devops', 'purple4',         '#',  ('.tf', '.tfvars')),
+    Language('Makefile',     'devops', 'bright_white',    '#',  ('.mk',)),
+    Language('Docker',       'devops', 'deep_sky_blue1',  '#',  ('.dockerfile',)),
     # --- Design ---
     Language('CSS',          'design', 'magenta',         None, ('.css',)),
     Language('SCSS',         'design', 'hot_pink',        '//', ('.scss',)),
     Language('LESS',         'design', 'magenta3',        '//', ('.less',)),
-    Language('HTML',         'design', 'dark_orange',     None, ('.html', '.htm')),
+    Language('HTML',         'design', 'dark_orange',     None, ('.html', '.htm', '.xhtml', '.shtml', '.pt', '.jinja', '.jinja2', '.j2', '.njk', '.hbs', '.ejs', '.mustache')),
     Language('SVG',          'design', 'gold1',           None, ('.svg',)),
     # --- Docs ---
     Language('Markdown',     'docs',   'white',           None, ('.md', '.mdx')),
