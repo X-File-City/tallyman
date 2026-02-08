@@ -63,13 +63,13 @@ Tallyman groups languages into three categories for the summary totals:
 ## Installation
 
 ```bash
-git clone https://github.com/mk/tallyman.git
-cd tallyman
+uv tool install tallyman-metrics
+```
 
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+Or with pip:
 
-uv pip install -r requirements.txt
+```bash
+pip install tallyman-metrics
 ```
 
 ## Usage
