@@ -1,0 +1,357 @@
+{
+  "id": "tallyman-onboarding",
+  "title": "Tallyman Codebase Tour",
+  "description": "A guided walkthrough of Tallyman, a Python CLI tool that scans projects and reports codebase size by language. Learn the linear pipeline architecture, core modules, and how everything fits together.",
+  "version": "1.0.0",
+  "audience": "New Contributors & AI Assistants",
+  "prerequisites": [
+    "Basic Python knowledge",
+    "Familiarity with CLI tools"
+  ],
+  "steps": [
+    {
+      "id": "overview",
+      "title": "Welcome to Tallyman",
+      "description": "Tallyman is a Python CLI tool that scans a project directory and reports codebase size by language. It shows raw line counts and 'effective' lines (excluding comments and blanks), grouped into categories: Code, Design, Docs, Specs, and Data.\n\nThe project follows a clean linear pipeline architecture where each stage feeds the next. Let's explore it.",
+      "focusDirectory": "",
+      "colorMode": "fileTypes",
+      "estimatedTime": 30,
+      "highlightLayers": [
+        {
+          "id": "source-code",
+          "name": "Source Code",
+          "color": "#3b82f6",
+          "items": [
+            { "path": "src", "type": "directory" }
+          ],
+          "opacity": 0.6,
+          "renderStrategy": "border"
+        },
+        {
+          "id": "test-suite",
+          "name": "Test Suite",
+          "color": "#22c55e",
+          "items": [
+            { "path": "tests", "type": "directory" }
+          ],
+          "opacity": 0.6,
+          "renderStrategy": "border"
+        },
+        {
+          "id": "planning-docs",
+          "name": "Planning Docs",
+          "color": "#f59e0b",
+          "items": [
+            { "path": "plans", "type": "directory" }
+          ],
+          "opacity": 0.6,
+          "renderStrategy": "border"
+        }
+      ],
+      "interactiveActions": [
+        {
+          "type": "explore",
+          "description": "Look around the project — source code (blue), tests (green), and planning docs (yellow) are highlighted."
+        }
+      ]
+    },
+    {
+      "id": "entry-point",
+      "title": "The Entry Point: cli.py",
+      "description": "Everything starts in cli.py. It parses command-line arguments, loads (or creates) the .tally-config.toml config file, and orchestrates the full pipeline:\n\n1. walker.walk_project() — yields (path, Language) tuples\n2. counter.count_lines() — returns FileCount per file\n3. aggregator.aggregate() — produces TallyResult\n4. display.display_results() — renders to terminal\n\nThe __main__.py module enables running via `python -m tallyman`.",
+      "focusDirectory": "src/tallyman",
+      "colorMode": "fileTypes",
+      "estimatedTime": 45,
+      "highlightLayers": [
+        {
+          "id": "entry-files",
+          "name": "Entry Points",
+          "color": "#ef4444",
+          "items": [
+            { "path": "src/tallyman/cli.py", "type": "file" },
+            { "path": "src/tallyman/__main__.py", "type": "file" }
+          ],
+          "opacity": 0.8,
+          "renderStrategy": "fill"
+        }
+      ],
+      "interactiveActions": [
+        {
+          "type": "click-file",
+          "description": "Click cli.py to see the main() function that drives the pipeline.",
+          "target": "src/tallyman/cli.py"
+        }
+      ]
+    },
+    {
+      "id": "language-registry",
+      "title": "Language Registry: languages.py",
+      "description": "The language registry defines 40+ languages as frozen dataclasses. Each Language has a name, category (Code/Design/Docs/Data), color for display, comment marker, and file extensions.\n\nA key design decision: Language objects are frozen and identity matters. Markdown(docs) and Markdown(specs) are distinct objects. The as_spec() method creates spec variants with cached results.\n\nThe EXTENSION_MAP provides O(1) lookup from file extension to Language.",
+      "focusDirectory": "src/tallyman",
+      "colorMode": "fileTypes",
+      "estimatedTime": 40,
+      "highlightLayers": [
+        {
+          "id": "language-file",
+          "name": "Language Registry",
+          "color": "#a855f7",
+          "items": [
+            { "path": "src/tallyman/languages.py", "type": "file" }
+          ],
+          "opacity": 0.8,
+          "renderStrategy": "fill"
+        }
+      ],
+      "interactiveActions": [
+        {
+          "type": "click-file",
+          "description": "Click languages.py to see how languages are defined and categorized.",
+          "target": "src/tallyman/languages.py"
+        }
+      ]
+    },
+    {
+      "id": "pipeline-modules",
+      "title": "The Pipeline: Walk, Count, Aggregate, Display",
+      "description": "The four core pipeline modules each handle one stage:\n\n- walker.py — Traverses directories respecting .gitignore and config exclusions. Detects spec directories (specs/, plans/, agents/). Yields (Path, Language) tuples.\n\n- counter.py — Reads each file, classifies every line as code, comment, or blank. Returns FileCount. Detects binary files by checking for null bytes in the first 8KB.\n\n- aggregator.py — Accumulates FileCounts into LanguageStats, groups them by category (Code, Design, Docs, Specs, Data), and produces the final TallyResult.\n\n- display.py — Uses Rich to render colored per-language stats, category totals, and percentage bars to the terminal.",
+      "focusDirectory": "src/tallyman",
+      "colorMode": "fileTypes",
+      "estimatedTime": 60,
+      "highlightLayers": [
+        {
+          "id": "walker",
+          "name": "1. Walker",
+          "color": "#3b82f6",
+          "items": [
+            { "path": "src/tallyman/walker.py", "type": "file" }
+          ],
+          "opacity": 0.8,
+          "renderStrategy": "fill"
+        },
+        {
+          "id": "counter",
+          "name": "2. Counter",
+          "color": "#22c55e",
+          "items": [
+            { "path": "src/tallyman/counter.py", "type": "file" }
+          ],
+          "opacity": 0.8,
+          "renderStrategy": "fill"
+        },
+        {
+          "id": "aggregator",
+          "name": "3. Aggregator",
+          "color": "#f59e0b",
+          "items": [
+            { "path": "src/tallyman/aggregator.py", "type": "file" }
+          ],
+          "opacity": 0.8,
+          "renderStrategy": "fill"
+        },
+        {
+          "id": "display",
+          "name": "4. Display",
+          "color": "#ef4444",
+          "items": [
+            { "path": "src/tallyman/display.py", "type": "file" }
+          ],
+          "opacity": 0.8,
+          "renderStrategy": "fill"
+        }
+      ],
+      "interactiveActions": [
+        {
+          "type": "click-file",
+          "description": "Click walker.py to see how directory traversal works.",
+          "target": "src/tallyman/walker.py"
+        },
+        {
+          "type": "click-file",
+          "description": "Click counter.py to see line classification logic.",
+          "target": "src/tallyman/counter.py"
+        }
+      ]
+    },
+    {
+      "id": "config-and-tui",
+      "title": "Configuration & TUI Setup",
+      "description": "Tallyman uses a .tally-config.toml file for per-project settings like excluded directories and spec directory overrides.\n\nconfig.py handles reading, writing, and finding config files — it walks up the directory tree from the target to the filesystem root looking for the nearest config.\n\nThe tui/setup_app.py module provides a Textual-based interactive setup wizard that launches on first run or with --setup. Users can browse directories and mark them as excluded or spec directories.",
+      "focusDirectory": "src/tallyman",
+      "colorMode": "fileTypes",
+      "estimatedTime": 40,
+      "highlightLayers": [
+        {
+          "id": "config-module",
+          "name": "Config",
+          "color": "#06b6d4",
+          "items": [
+            { "path": "src/tallyman/config.py", "type": "file" }
+          ],
+          "opacity": 0.8,
+          "renderStrategy": "fill"
+        },
+        {
+          "id": "tui-module",
+          "name": "TUI Setup",
+          "color": "#ec4899",
+          "items": [
+            { "path": "src/tallyman/tui", "type": "directory" }
+          ],
+          "opacity": 0.7,
+          "renderStrategy": "border"
+        }
+      ],
+      "interactiveActions": [
+        {
+          "type": "click-file",
+          "description": "Click config.py to see how config files are discovered and loaded.",
+          "target": "src/tallyman/config.py"
+        },
+        {
+          "type": "hover-directory",
+          "description": "Hover over the tui/ directory to see the Textual setup app.",
+          "target": "src/tallyman/tui"
+        }
+      ]
+    },
+    {
+      "id": "test-suite",
+      "title": "Test Suite",
+      "description": "Tallyman has 84 tests organized by module, each using pytest with tmp_path fixtures:\n\n- test_counter.py (10 tests) — Line counting, encoding errors\n- test_languages.py (14 tests) — Language registry, extension map, as_spec\n- test_walker.py (24 tests) — Git root, gitignore, walking, spec detection\n- test_aggregator.py (11 tests) — Stats aggregation, categories, percentages\n- test_config.py (25 tests) — Config find/load/save, directory cleanup\n\nTests mirror the source structure closely, making it easy to find relevant tests for any module.",
+      "focusDirectory": "tests",
+      "colorMode": "fileTypes",
+      "estimatedTime": 30,
+      "highlightLayers": [
+        {
+          "id": "all-tests",
+          "name": "Test Files",
+          "color": "#22c55e",
+          "items": [
+            { "path": "tests/test_counter.py", "type": "file" },
+            { "path": "tests/test_languages.py", "type": "file" },
+            { "path": "tests/test_walker.py", "type": "file" },
+            { "path": "tests/test_aggregator.py", "type": "file" },
+            { "path": "tests/test_config.py", "type": "file" }
+          ],
+          "opacity": 0.7,
+          "renderStrategy": "fill"
+        }
+      ],
+      "interactiveActions": [
+        {
+          "type": "click-file",
+          "description": "Click test_walker.py — the largest test file with 24 tests.",
+          "target": "tests/test_walker.py"
+        }
+      ]
+    },
+    {
+      "id": "full-picture",
+      "title": "The Full Picture",
+      "description": "Here's the complete Tallyman codebase — everything we've covered lit up together.\n\nThe pipeline flows through the blue source modules (cli → walker → counter → aggregator → display), supported by the language registry, config system, and TUI setup wizard. The green test suite mirrors the source structure with 84 tests. Planning docs in purple track feature development.\n\nYou now know the architecture. Run `tallyman` to see it in action, or dive into any module to start contributing.",
+      "focusDirectory": "",
+      "colorMode": "fileTypes",
+      "estimatedTime": 30,
+      "highlightLayers": [
+        {
+          "id": "source-all",
+          "name": "Source Code",
+          "color": "#3b82f6",
+          "items": [
+            { "path": "src/tallyman/__init__.py", "type": "file" },
+            { "path": "src/tallyman/__main__.py", "type": "file" },
+            { "path": "src/tallyman/aggregator.py", "type": "file" },
+            { "path": "src/tallyman/cli.py", "type": "file" },
+            { "path": "src/tallyman/config.py", "type": "file" },
+            { "path": "src/tallyman/counter.py", "type": "file" },
+            { "path": "src/tallyman/display.py", "type": "file" },
+            { "path": "src/tallyman/languages.py", "type": "file" },
+            { "path": "src/tallyman/walker.py", "type": "file" },
+            { "path": "src/tallyman/tui/__init__.py", "type": "file" },
+            { "path": "src/tallyman/tui/setup_app.py", "type": "file" }
+          ],
+          "opacity": 0.8,
+          "renderStrategy": "fill"
+        },
+        {
+          "id": "tests-all",
+          "name": "Test Suite",
+          "color": "#22c55e",
+          "items": [
+            { "path": "tests/__init__.py", "type": "file" },
+            { "path": "tests/test_aggregator.py", "type": "file" },
+            { "path": "tests/test_config.py", "type": "file" },
+            { "path": "tests/test_counter.py", "type": "file" },
+            { "path": "tests/test_languages.py", "type": "file" },
+            { "path": "tests/test_walker.py", "type": "file" }
+          ],
+          "opacity": 0.8,
+          "renderStrategy": "fill"
+        },
+        {
+          "id": "plans-all",
+          "name": "Planning Docs",
+          "color": "#8b5cf6",
+          "items": [
+            { "path": "plans/planning-rules.md", "type": "file" },
+            { "path": "plans/001-tallyman-cli-tool/00-plan-introduction.plan.md", "type": "file" },
+            { "path": "plans/001-tallyman-cli-tool/phase-01-project-foundation.plan.md", "type": "file" },
+            { "path": "plans/001-tallyman-cli-tool/phase-02-core-counting-engine.plan.md", "type": "file" },
+            { "path": "plans/001-tallyman-cli-tool/phase-03-configuration-and-tui.plan.md", "type": "file" },
+            { "path": "plans/001-tallyman-cli-tool/phase-04-output-and-formatting.plan.md", "type": "file" },
+            { "path": "plans/002-specs-category/00-plan-introduction.plan.md", "type": "file" },
+            { "path": "plans/002-specs-category/phase-01-language-config-walker.plan.md", "type": "file" },
+            { "path": "plans/002-specs-category/phase-02-tui-s-key.plan.md", "type": "file" },
+            { "path": "plans/002-specs-category/phase-03-aggregator-display-tests.plan.md", "type": "file" }
+          ],
+          "opacity": 0.8,
+          "renderStrategy": "fill"
+        },
+        {
+          "id": "config-all",
+          "name": "Project Config",
+          "color": "#f59e0b",
+          "items": [
+            { "path": ".gitignore", "type": "file" },
+            { "path": ".claude/settings.json", "type": "file" },
+            { "path": ".cursor/rules/coding-guidelines.mdc", "type": "file" },
+            { "path": ".cursor/rules/project-rules.mdc", "type": "file" },
+            { "path": "pyproject.toml", "type": "file" },
+            { "path": "pyrefly.toml", "type": "file" },
+            { "path": "ruff.toml", "type": "file" },
+            { "path": "uv.lock", "type": "file" }
+          ],
+          "opacity": 0.8,
+          "renderStrategy": "fill"
+        },
+        {
+          "id": "docs-all",
+          "name": "Docs & Assets",
+          "color": "#ec4899",
+          "items": [
+            { "path": "CLAUDE.md", "type": "file" },
+            { "path": "README.md", "type": "file" },
+            { "path": "change-log.md", "type": "file" },
+            { "path": "images/tallyman line counter idea.excalidraw", "type": "file" },
+            { "path": "images/ui.png", "type": "file" },
+            { "path": "readme-resources/tallyman-for-commandbook.webp", "type": "file" },
+            { "path": "readme-resources/tallyman-setup.webp", "type": "file" }
+          ],
+          "opacity": 0.8,
+          "renderStrategy": "fill"
+        }
+      ],
+      "interactiveActions": [
+        {
+          "type": "explore",
+          "description": "Explore the fully highlighted codebase — source (blue), tests (green), config (yellow), plans (purple)."
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "author": "Claude",
+    "createdAt": "2026-02-08",
+    "tags": ["onboarding", "architecture", "python", "cli"]
+  }
+}
