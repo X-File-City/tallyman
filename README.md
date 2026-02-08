@@ -4,8 +4,8 @@
 
 Tallyman is a command-line tool that gives you a real picture of your codebase - not just raw line counts, but where your effort actually lives. It groups results into meaningful categories like Code, Design, Docs, Specs, and Data, so you can see at a glance whether your project is mostly Python logic, CSS styling, or Markdown documentation.
 
-[![PyPI](https://img.shields.io/pypi/v/tallyman-metrics?v=1)](https://pypi.org/project/tallyman-metrics/)
-[![Python](https://img.shields.io/pypi/pyversions/tallyman-metrics?v=1)](https://pypi.org/project/tallyman-metrics/)
+[![PyPI](https://img.shields.io/pypi/v/tallyman-metrics?v=2)](https://pypi.org/project/tallyman-metrics/)
+[![Python](https://img.shields.io/pypi/pyversions/tallyman-metrics?v=2)](https://pypi.org/project/tallyman-metrics/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ![Tallyman output showing language breakdown with colored percentage bar for a Python web project](https://mkennedy-shared.nyc3.digitaloceanspaces.com/github/tallyman-for-commandbook.webp)
