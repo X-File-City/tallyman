@@ -88,7 +88,13 @@ class SetupApp(App[tuple[set[str], set[str]] | None]):
             yield Button('Cancel', id='cancel')
         yield Footer()
 
-    def _populate(self, parent_node: TreeNode[dict[str, object]], dir_path: Path, rel_path: str) -> None:
+    def _populate(
+        self,
+        parent_node: TreeNode[dict[str, object]],
+        dir_path: Path,
+        rel_path: str,
+        parent_is_spec: bool = False,
+    ) -> None:
         """Recursively add subdirectories to the tree."""
         try:
             entries = sorted(dir_path.iterdir(), key=lambda p: p.name.lower())
@@ -103,9 +109,11 @@ class SetupApp(App[tuple[set[str], set[str]] | None]):
             is_gitignored = self.gitignore_spec.match_file(child_rel + '/')
             is_excluded = child_rel in self.user_excluded or is_gitignored
             is_auto_spec = entry.name.lower() in SPEC_DIR_NAMES and not is_gitignored
-            is_spec = child_rel in self.user_spec_dirs or is_auto_spec
+            inherited_spec = parent_is_spec and not is_gitignored
+            is_spec = child_rel in self.user_spec_dirs or is_auto_spec or inherited_spec
+            show_auto = is_auto_spec or inherited_spec
 
-            label = self._make_label(entry.name, is_gitignored, is_excluded, is_spec, is_auto_spec)
+            label = self._make_label(entry.name, is_gitignored, is_excluded, is_spec, show_auto)
             node = parent_node.add(
                 label,
                 data={
@@ -113,13 +121,13 @@ class SetupApp(App[tuple[set[str], set[str]] | None]):
                     'gitignored': is_gitignored,
                     'excluded': is_excluded,
                     'spec': is_spec,
-                    'auto_spec': is_auto_spec,
+                    'auto_spec': show_auto,
                 },
             )
 
             # Don't recurse into gitignored dirs
             if not is_gitignored:
-                self._populate(node, entry, child_rel)
+                self._populate(node, entry, child_rel, parent_is_spec=is_spec)
 
     @staticmethod
     def _collapse_excluded(node: TreeNode[dict[str, object]]) -> None:
