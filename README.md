@@ -2,7 +2,7 @@
 
 A command-line tool that summarizes the size of a codebase by language, showing lines of code with and without comments and blank lines.
 
-![](https://raw.githubusercontent.com/mikeckennedy/tallyman/refs/heads/main/readme-resources/tallyman-for-commandbook.webp)
+![](https://mkennedy-shared.nyc3.digitaloceanspaces.com/github/tallyman-for-commandbook.webp)
 
 ## Overview
 
@@ -51,6 +51,8 @@ $ tallyman
   - Generated and minified files
 - **Colorful terminal output**  -  Clean, readable formatting in the terminal
 - **Realistic metrics**  -  Only counts the code you wrote, not third-party dependencies
+
+> **Note on comment detection:** Tallyman detects single-line comments (`#`, `//`, `--`, etc.) but does not detect multi-line comment blocks (`/* */`, `""" """`, `{- -}`, etc.). Lines inside multi-line comment blocks are counted as code.
 
 ## Language Categories
 
